@@ -1,3 +1,13 @@
 {
-  "version": 2
+  "version": 2,
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "api/create-link.js", "use": "@vercel/node" },
+    { "src": "api/get-available.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/create-link", "dest": "/api/create-link.js" },
+    { "src": "/api/get-available", "dest": "/api/get-available.js" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }
