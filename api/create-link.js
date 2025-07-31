@@ -1,31 +1,29 @@
-const fetch = require('node-fetch');
-
-module.exports = async (req, res) => {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
-
-  let body = '';
-  for await (const chunk of req) {
-    body += chunk;
-  }
-  req.body = JSON.parse(body || '{}');
 
   const { name, email, eventType } = req.body;
 
-  const response = await fetch("https://api.calendly.com/scheduling_links", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.CALENDLY_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      owner: eventType,
-      max_event_count: 1,
-      invitee_email: email,
-    }),
-  });
+  const token = process.env.CALENDLY_API_KEY;
+  if (!token) return res.status(500).json({ error: "Missing API Key" });
 
-  const data = await response.json();
-  res.status(200).json(data.resource || {});
-};
+  try {
+    const response = await fetch("https://api.calendly.com/scheduled_events", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        invitee: { name, email },
+        event_type: eventType
+      })
+    });
+
+    const data = await response.json();
+    return res.status(200).json({ booking_url: data.resource?.uri || null });
+  } catch (err) {
+    return res.status(500).json({ error: "Calendly error", details: err.message });
+  }
+}
