@@ -1,34 +1,24 @@
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+const fetch = require('node-fetch');
+
+module.exports = async (req, res) => {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { start_time, end_time, timezone, event_type } = req.query;
-
-  if (!start_time || !end_time || !timezone || !event_type) {
-    return res.status(400).json({ error: 'Missing required query parameters' });
+  let body = '';
+  for await (const chunk of req) {
+    body += chunk;
   }
+  req.body = JSON.parse(body || '{}');
 
-  try {
-    const calendlyRes = await fetch(
-      `https://api.calendly.com/availability?event_type=${encodeURIComponent(event_type)}&start_time=${encodeURIComponent(start_time)}&end_time=${encodeURIComponent(end_time)}&timezone=${encodeURIComponent(timezone)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.CALENDLY_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+  const { email } = req.body;
 
-    if (!calendlyRes.ok) {
-      const errorText = await calendlyRes.text();
-      return res.status(calendlyRes.status).json({ error: errorText });
-    }
+  const response = await fetch("https://api.calendly.com/event_types", {
+    headers: {
+      Authorization: `Bearer ${process.env.CALENDLY_API_KEY}`,
+    },
+  });
 
-    const data = await calendlyRes.json();
-    res.status(200).json(data);
-  } catch (err) {
-    console.error("Calendly availability API error:", err);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-}
+  const data = await response.json();
+  res.status(200).json(data || {});
+};
