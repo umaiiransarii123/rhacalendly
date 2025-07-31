@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Discovery Call Scheduler</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; }
+    button, input { padding: 10px; margin: 8px 0; width: 100%; }
+    #calendar button { display: block; width: 100%; margin: 4px 0; }
+    #result { margin-top: 20px; color: green; }
+  </style>
+</head>
+<body>
+  <h2>Pick a Time for Your Discovery Call</h2>
+  <div id="calendar">Loading available slots...</div>
+  <div id="result"></div>
+
+  <script>
+    (async function(){
+      const eventType = "https://api.calendly.com/event_types/57f4b5b4-cb5a-4634-a60c-6a6765a9f29f";
+      const now = new Date().toISOString();
+      const weekLater = new Date(Date.now() + 7*24*60*60*1000).toISOString();
+
+      const res = await fetch(`/api/get-available?eventType=${encodeURIComponent(eventType)}&start=${now}&end=${weekLater}`);
+      const data = await res.json();
+      const container = document.getElementById("calendar");
+      container.innerHTML = "";
+
+      data.collection?.forEach(slot => {
+        if (slot.status === "available") {
+          const btn = document.createElement("button");
+          btn.textContent = new Date(slot.start_time).toLocaleString();
+          btn.onclick = () => bookSlot(slot.start_time);
+          container.appendChild(btn);
+        }
+      });
+
+      async function bookSlot(chosenTime) {
+        const email = prompt("Enter your email:");
+        if (!email) return;
+        const bookingRes = await fetch("/api/create-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, eventType })
+        });
+        const booking = await bookingRes.json();
+        if (booking.resource?.booking_url) {
+          window.location.href = booking.resource.booking_url;
+        } else {
+          document.getElementById("result").textContent = "Booking failed.";
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
