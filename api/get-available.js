@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      `https://api.calendly.com/event_type_available_times?event_type=${encodeURIComponent(event_type)}&start_time=${encodeURIComponent(start_time)}&end_time=${encodeURIComponent(end_time)}`,
+      `https://api.calendly.com/availability?event_type=${encodeURIComponent(event_type)}&start_time=${encodeURIComponent(start_time)}&end_time=${encodeURIComponent(end_time)}`,
       {
         headers: {
           Authorization: `Bearer ${process.env.CALENDLY_ACCESS_TOKEN}`,
@@ -33,4 +33,3 @@ export default async function handler(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
-
