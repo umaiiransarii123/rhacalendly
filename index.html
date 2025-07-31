@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Book a Discovery Call</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2rem; max-width: 600px; margin: auto; }
+    h2 { margin-bottom: 1rem; }
+    input, button, select {
+      width: 100%;
+      padding: 10px;
+      margin: 0.5rem 0;
+      font-size: 16px;
+    }
+    .slot-button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      cursor: pointer;
+    }
+    .slot-button.selected {
+      background-color: #0070f3;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h2>Book a Discovery Call with Dart</h2>
+  <label>Select Date:</label>
+  <input type="date" id="datePicker" />
+  <div id="slotsContainer"></div>
+
+  <input type="text" id="name" placeholder="Your Name" />
+  <input type="email" id="email" placeholder="Your Email" />
+  <button id="bookBtn">Book Now</button>
+
+  <script>
+    const eventType = ""; // This is set by backend ENV
+    let selectedTime = null;
+
+    document.getElementById("datePicker").addEventListener("change", async (e) => {
+      const selectedDate = e.target.value;
+      if (!selectedDate) return;
+
+      const start = new Date(selectedDate + "T00:00:00Z").toISOString();
+      const end = new Date(selectedDate + "T23:59:59Z").toISOString();
+      const res = await fetch(`/api/get-available?start=${start}&end=${end}`);
+      const data = await res.json();
+
+      const container = document.getElementById("slotsContainer");
+      container.innerHTML = "<h4>Select a Time:</h4>";
+
+      (data.collection || []).forEach(slot => {
+        const btn = document.createElement("button");
+        btn.textContent = new Date(slot.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        btn.className = "slot-button";
+        btn.onclick = () => {
+          selectedTime = slot.start_time;
+          document.querySelectorAll(".slot-button").forEach(b => b.classList.remove("selected"));
+          btn.classList.add("selected");
+        };
+        container.appendChild(btn);
+      });
+    });
+
+    document.getElementById("bookBtn").addEventListener("click", async () => {
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+
+      if (!selectedTime || !email || !name) {
+        alert("Please select a time and fill in your name and email.");
+        return;
+      }
+
+      const res = await fetch("/api/create-invitee", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, time: selectedTime })
+      });
+
+      const data = await res.json();
+      if (data.booking_url) {
+        window.location.href = data.booking_url;
+      } else {
+        alert("Booking failed. Please try again.");
+      }
+    });
+  </script>
+</body>
+</html>
