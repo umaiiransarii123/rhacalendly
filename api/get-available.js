@@ -1,12 +1,33 @@
+import fetch from "node-fetch";
+
 export default async function handler(req, res) {
-  const { eventType, start, end } = req.query;
-  try {
-    const response = await fetch(`https://api.calendly.com/event_type_available_times?event_type=${encodeURIComponent(eventType)}&start_time=${start}&end_time=${end}`, {
-      headers: { Authorization: `Bearer ${process.env.CALENDLY_API_KEY}` }
+  const { start_time, end_time, event_type } = req.query;
+
+  if (!start_time || !end_time || !event_type) {
+    return res.status(400).json({
+      error: "Missing required query parameters: start_time, end_time, event_type"
     });
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.calendly.com/availability/event_type/${encodeURIComponent(event_type)}?start_time=${encodeURIComponent(start_time)}&end_time=${encodeURIComponent(end_time)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.CALENDLY_ACCESS_TOKEN}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json();
+      return res.status(response.status).json(err);
+    }
+
     const data = await response.json();
-    res.status(response.ok ? 200 : response.status).json(data);
+    res.status(200).json(data);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch availability" });
+    res.status(500).json({ error: error.message });
   }
 }
